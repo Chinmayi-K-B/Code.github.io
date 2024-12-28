@@ -39,3 +39,14 @@ public:
         return node->isEndOfSlot;
     }
 };
+
+int main() {
+    ParkingTrie trie;
+    trie.insert("City1_LotA_Slot3");
+    trie.insert("City1_LotB_Slot1");
+    
+    cout << "Is Slot City1_LotA_Slot3 available? " << (trie.search("City1_LotA_Slot3") ? "Yes" : "No") << endl;
+    cout << "Is Slot City1_LotA_Slot4 available? " << (trie.search("City1_LotA_Slot4") ? "Yes" : "No") << endl;
+    
+    return 0;
+}
