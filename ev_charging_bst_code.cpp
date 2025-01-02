@@ -1,154 +1,140 @@
 #include <iostream>
-#include <queue>
-#include <string>
 using namespace std;
 
-// Vehicle class to store vehicle details
-class ElectricVehicle {
-public:
-    string make;
-    string model;
-    ElectricVehicle(string m, string mod) {
-        make = m;
-        model = mod;
-    }
+// Node structure for BST
+struct BSTNode {
+    int slotID;             // Unique ID for the charging slot
+    bool isAvailable;       // Availability of the slot
+    BSTNode* left;          // Left child
+    BSTNode* right;         // Right child
+
+    BSTNode(int id) : slotID(id), isAvailable(true), left(nullptr), right(nullptr) {}
 };
 
-// Node structure for each charging slot in the BST
-class SlotNode {
-public:
-    string slotID;
-    bool isOccupied;
-    ElectricVehicle* currentEV;
-    SlotNode* left;
-    SlotNode* right;
-
-    SlotNode(string id) {
-        slotID = id;
-        isOccupied = false;
-        currentEV = nullptr;
-        left = right = nullptr;
-    }
-};
-
-// BST for managing charging slots
+// Class for managing the BST
 class EVSlotBST {
 private:
-    SlotNode* root;
+    BSTNode* root;
 
-    // Helper function to insert slots into BST
-    SlotNode* insert(SlotNode* node, string id) {
-        if (node == nullptr) {
-            return new SlotNode(id);
+    // Helper function to insert a slot into the BST
+    BSTNode* insertSlot(BSTNode* node, int slotID) {
+        if (!node) return new BSTNode(slotID);
+
+        if (slotID < node->slotID) {
+            node->left = insertSlot(node->left, slotID);
+        } else if (slotID > node->slotID) {
+            node->right = insertSlot(node->right, slotID);
+        } else {
+            cout << "Slot with ID " << slotID << " already exists.\n";
         }
-
-        if (id < node->slotID) {
-            node->left = insert(node->left, id);
-        } else if (id > node->slotID) {
-            node->right = insert(node->right, id);
-        }
-
         return node;
     }
 
-    // Helper function to search for a slot by ID
-    SlotNode* search(SlotNode* node, string id) {
-        if (node == nullptr || node->slotID == id) {
-            return node;
-        }
+    // Helper function to find a slot in the BST
+    BSTNode* findSlot(BSTNode* node, int slotID) {
+        if (!node || node->slotID == slotID) return node;
 
-        if (id < node->slotID) {
-            return search(node->left, id);
+        if (slotID < node->slotID) {
+            return findSlot(node->left, slotID);
         } else {
-            return search(node->right, id);
+            return findSlot(node->right, slotID);
         }
+    }
+
+    // Helper function to display the BST in-order
+    void displaySlots(BSTNode* node) {
+        if (!node) return;
+        displaySlots(node->left);
+        cout << "Slot ID: " << node->slotID
+             << " | Availability: " << (node->isAvailable ? "Available" : "Occupied") << endl;
+        displaySlots(node->right);
     }
 
 public:
-    EVSlotBST() {
-        root = nullptr;
+    EVSlotBST() : root(nullptr) {}
+
+    // Insert a new charging slot
+    void addSlot(int slotID) {
+        root = insertSlot(root, slotID);
+        cout << "Slot " << slotID << " added successfully.\n";
     }
 
-    void insertSlot(string id) {
-        root = insert(root, id);
-    }
-
-    SlotNode* searchSlot(string id) {
-        return search(root, id);
-    }
-
-    // Function to allocate a slot if available
-    bool allocateSlot(string slotID, ElectricVehicle* ev) {
-        SlotNode* slot = searchSlot(slotID);
-        if (slot != nullptr) {
-            if (!slot->isOccupied) {
-                slot->isOccupied = true;
-                slot->currentEV = ev;
-                cout << "Slot " << slot->slotID << " allocated to " << ev->make << " " << ev->model << ".\n";
-                return true;
-            } else {
-                cout << "Slot " << slot->slotID << " is already occupied.\n";
-                return false;
-            }
+    // Allocate a slot to an EV
+    void allocateSlot(int slotID) {
+        BSTNode* slot = findSlot(root, slotID);
+        if (!slot) {
+            cout << "Slot with ID " << slotID << " does not exist.\n";
+            return;
+        }
+        if (slot->isAvailable) {
+            slot->isAvailable = false;
+            cout << "Slot " << slotID << " allocated successfully.\n";
         } else {
-            cout << "Slot " << slotID << " not found.\n";
-            return false;
+            cout << "Slot " << slotID << " is already occupied.\n";
         }
     }
 
-    // Function to deallocate a slot when done
-    void deallocateSlot(string slotID) {
-        SlotNode* slot = searchSlot(slotID);
-        if (slot != nullptr && slot->isOccupied) {
-            slot->isOccupied = false;
-            slot->currentEV = nullptr;
-            cout << "Slot " << slotID << " is now available.\n";
-        } else {
-            cout << "Slot " << slotID << " is already available or not found.\n";
+    // Deallocate a slot after use
+    void deallocateSlot(int slotID) {
+        BSTNode* slot = findSlot(root, slotID);
+        if (!slot) {
+            cout << "Slot with ID " << slotID << " does not exist.\n";
+            return;
         }
+        if (!slot->isAvailable) {
+            slot->isAvailable = true;
+            cout << "Slot " << slotID << " deallocated successfully.\n";
+        } else {
+            cout << "Slot " << slotID << " is already available.\n";
+        }
+    }
+
+    // Display all slots in the system
+    void displaySlots() {
+        cout << "\nAll Charging Slots:\n";
+        displaySlots(root);
     }
 };
 
+// Main function
 int main() {
-    // Create the BST for charging slots and insert some slots
-    EVSlotBST slotNetwork;
-    slotNetwork.insertSlot("A1");
-    slotNetwork.insertSlot("B1");
-    slotNetwork.insertSlot("C1");
+    EVSlotBST evSlots;
+    int choice, slotID;
 
-    // Create a queue for vehicles
-    queue<ElectricVehicle*> vehicleQueue;
+    while (true) {
+        cout << "\nEV Charging Slot Management Menu:\n";
+        cout << "1. Add Charging Slot\n";
+        cout << "2. Allocate Slot to EV\n";
+        cout << "3. Deallocate Slot\n";
+        cout << "4. Display All Slots\n";
+        cout << "5. Exit\n";
+        cout << "Enter your choice: ";
+        cin >> choice;
 
-    // Vehicle arrivals (vehicles queuing up)
-    vehicleQueue.push(new ElectricVehicle("Tesla", "Model 3"));
-    vehicleQueue.push(new ElectricVehicle("Nissan", "Leaf"));
-    vehicleQueue.push(new ElectricVehicle("BMW", "i3"));
-
-    // Allocate charging slots as they become available
-    cout << "\nAllocating slots to vehicles:\n";
-    // Allocate first available slot to first vehicle in queue
-    slotNetwork.allocateSlot("A1", vehicleQueue.front());
-    vehicleQueue.pop();
-
-    // Allocate second available slot to second vehicle in queue
-    slotNetwork.allocateSlot("B1", vehicleQueue.front());
-    vehicleQueue.pop();
-
-    // Display remaining vehicles in the queue
-    cout << "\nRemaining vehicles in queue:\n";
-    while (!vehicleQueue.empty()) {
-        ElectricVehicle* ev = vehicleQueue.front();
-        cout << ev->make << " " << ev->model << " is waiting for a slot.\n";
-        vehicleQueue.pop();
+        switch (choice) {
+        case 1:
+            cout << "Enter Slot ID to Add: ";
+            cin >> slotID;
+            evSlots.addSlot(slotID);
+            break;
+        case 2:
+            cout << "Enter Slot ID to Allocate: ";
+            cin >> slotID;
+            evSlots.allocateSlot(slotID);
+            break;
+        case 3:
+            cout << "Enter Slot ID to Deallocate: ";
+            cin >> slotID;
+            evSlots.deallocateSlot(slotID);
+            break;
+        case 4:
+            evSlots.displaySlots();
+            break;
+        case 5:
+            cout << "Exiting EV Charging Slot Management System. Goodbye!\n";
+            return 0;
+        default:
+            cout << "Invalid choice. Please try again.\n";
+        }
     }
-
-    // Deallocate slot A1 when Tesla finishes charging
-    slotNetwork.deallocateSlot("A1");
-
-    // Allocate next vehicle in queue to available slot A1
-    vehicleQueue.push(new ElectricVehicle("Ford", "Mustang"));
-    slotNetwork.allocateSlot("A1", vehicleQueue.front());
-    vehicleQueue.pop();
-
-    return 0;
 }
